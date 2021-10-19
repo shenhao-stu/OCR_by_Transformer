@@ -1,13 +1,14 @@
-# -*- coding: utf-8 -*-
+# -*- encoding: utf-8 -*-
+"""
+@Author             :  Hao Shen 
+@Last Modified by   :  Hao Shen
+@Last Modified time :  2021/10/19 18:14:37
+@Email              :  shenhao0223sh@gamil.com
+@Describe           :  analysis dataset
 """
 
-分析本节所要用的识别数据集
+# here put the import lib
 
-本节的OCR小实验使用的数据集是 ICDAR 2015 Incidental Scene Text Task4.3 word Recognition
-本脚本会对这个数据集进行一些简单的分析，并统计生成一些后续需要使用的文件
-
-@author: anshengmath@163.com
-"""
 import os
 
 import cv2
@@ -83,9 +84,12 @@ if __name__ == "__main__":
     lbl2id_map_path = os.path.join(base_data_dir, 'lbl2id_map.txt')
 
     # 统计数据集中出现的所有的label中包含字符最多的有多少字符
-    train_max_label_len = statistics_max_len_label(train_lbl_path)  # 训练集最长label
-    valid_max_label_len = statistics_max_len_label(valid_lbl_path)  # 验证集最长label
-    max_label_len = max(train_max_label_len, valid_max_label_len)  # 全数据集最长label
+    train_max_label_len = statistics_max_len_label(
+        train_lbl_path)  # 训练集最长label
+    valid_max_label_len = statistics_max_len_label(
+        valid_lbl_path)  # 验证集最长label
+    max_label_len = max(train_max_label_len,
+                        valid_max_label_len)  # 全数据集最长label
     print(f"数据集中包含字符最多的label长度为{max_label_len}")
 
     # 统计数据集中出现的所有的符号
