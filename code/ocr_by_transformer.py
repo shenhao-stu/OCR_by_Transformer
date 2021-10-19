@@ -259,17 +259,17 @@ def run_epoch(data_loader, model, loss_compute, device=None):
 
 # greedy decode
 def greedy_decode(model, src, src_mask, max_len, start_symbol, end_symbol):
-    memory = model.encode(src, src_mask)
+    memory = model.encode(src, src_mask) # memory.shape=[1,24,512]
     # ys代表目前已生成的序列，最初为仅包含一个起始符的序列，不断将预测结果追加到序列最后
-    ys = torch.ones(1, 1).fill_(start_symbol).type_as(src.data).long()
+    ys = torch.ones(1, 1).fill_(start_symbol).type_as(src.data).long() # ys=[[1]]
     for i in range(max_len - 1):
         out = model.decode(memory, src_mask,
-                           ys, subsequent_mask(ys.size(1)).type_as(src.data))
-        prob = model.generator(out[:, -1])
+                           ys, subsequent_mask(ys.size(1)).type_as(src.data)) # out.shape=[1,1,512]
+        prob = model.generator(out[:, -1]) # [1,90]
         _, next_word = torch.max(prob, dim=1)
         next_word = next_word.data[0]
-        next_word = torch.ones(1, 1).type_as(src.data).fill_(next_word).long()
-        ys = torch.cat([ys, next_word], dim=1)
+        next_word = torch.ones(1, 1).type_as(src.data).fill_(next_word).long() # next_word=[[7]]
+        ys = torch.cat([ys, next_word], dim=1) # ys=[[1,7]]
 
         next_word = int(next_word)
         if next_word == end_symbol:
