@@ -1,19 +1,16 @@
-# -*- coding: utf-8 -*-
+# -*- encoding: utf-8 -*-
+"""
+@Author             :  Hao Shen 
+@Last Modified by   :  Hao Shen
+@Last Modified time :  2021/10/19 18:20:54
+@Email              :  shenhao0223sh@gamil.com
+@Describe           :  use transformer to do OCR!
 """
 
-use transformer to do OCR!
+# here put the import lib
 
-利用transformer来完成一个简单的OCR字符识别任务
-
-@author: shenhao0223sh@gmail.com
-"""
-import copy
 import os
-import time
 
-import numpy as np
-import torch
-import torch.nn as nn
 import torchvision.models as models
 import torchvision.transforms as transforms
 from PIL import Image
