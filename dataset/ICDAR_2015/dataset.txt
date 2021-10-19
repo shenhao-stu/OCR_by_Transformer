@@ -1,0 +1,7 @@
+
+
+https://rrc.cvc.uab.es/?ch=4&com=downloads
+ICDAR2015
+Task 4.3: Word Recognition
+
+用高宽比>1.5粗略过滤了文字竖向排列的图片
