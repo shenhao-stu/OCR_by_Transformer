@@ -1,14 +1,16 @@
-# -*- coding: utf-8 -*-
+# -*- encoding: utf-8 -*-
+"""
+@Author             :  Hao Shen 
+@Last Modified by   :  Hao Shen
+@Last Modified time :  2021/10/19 18:22:45
+@Email              :  shenhao0223sh@gamil.com
+@Describe           :  transformer network
 """
 
-transformer 网络结构
+# here put the import lib
 
-@author: anshengmath@163.com
-modified from a great tutorial: http://nlp.seas.harvard.edu/2018/04/03/attention.html
-"""
 import copy
 import math
-import time
 
 import numpy as np
 import torch
@@ -202,12 +204,14 @@ def subsequent_mask(size):
 def attention(query, key, value, mask=None, dropout=None):
     """Compute 'Scaled Dot Product Attention'"""
     d_k = query.size(-1)
-    scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)  # scores.shape=[64,8,20,24]
+    scores = torch.matmul(query, key.transpose(-2, -1)) / \
+             math.sqrt(d_k)  # scores.shape=[64,8,20,24]
     if mask is not None:  # mask.shape=[64,1,1,24]
         scores = scores.masked_fill(mask == 0, -1e9)
     p_attn = F.softmax(scores, dim=-1)
     if dropout is not None:
-        p_attn = dropout(p_attn)  # p_attn.shape=[64,8,20,24] value.shape=[64,8,24,64]
+        # p_attn.shape=[64,8,20,24] value.shape=[64,8,24,64]
+        p_attn = dropout(p_attn)
     return torch.matmul(p_attn, value), p_attn
 
 
