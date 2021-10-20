@@ -19,7 +19,12 @@ from analysis_recognition_dataset import load_lbl2id_map, statistics_max_len_lab
 from ocr_by_transformer import *
 
 
-def predict_student_num(img_path, id2lbl_map, model, max_len, start_symbol=1, end_symbol=2):
+def predict_student_num(img_name, lbl2id_map_path, model, max_len, start_symbol=1, end_symbol=2):
+    # read file
+    img_path = os.path.join(base_data_dir, img_name + '.png')
+    img = Image.open(img_path).convert('RGB')
+    lbl2id_map, id2lbl_map = load_lbl2id_map(lbl2id_map_path)
+
     # 定义随机颜色变换
     color_trans = transforms.ColorJitter(0.1, 0.1, 0.1)
     # 定义 Normalize
@@ -28,12 +33,10 @@ def predict_student_num(img_path, id2lbl_map, model, max_len, start_symbol=1, en
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ])
 
-    img = Image.open(img_path).convert('RGB')
-
     # 对图片进行大致等比例的缩放
     # 将高缩放到32，宽大致等比例缩放，但要被32整除
     w, h = img.size
-    max_ratio = 8
+    max_ratio = 24
     ratio = round((w / h) * 3)  # 将宽拉长3倍，然后四舍五入
     if ratio == 0:
         ratio = 1
@@ -60,18 +63,40 @@ def predict_student_num(img_path, id2lbl_map, model, max_len, start_symbol=1, en
     pred_result = greedy_decode(
         model, src, src_mask, max_len, start_symbol, end_symbol)
 
+    # cur_decode_out
+    gt = []
+    gt.append(1)  # 先添加句子起始符
+    for lbl in img_name:
+        gt.append(lbl2id_map[lbl])
+    gt.append(2)
+    for i in range(len(img_name), max_len):
+        gt.append(0)
+    # 截断为预设的最大序列长度
+    gt = gt[:max_len]
+    decode_out = gt[1:]
+    cur_decode_out = torch.tensor(decode_out)
+    is_correct = "correct" if judge_is_correct(pred_result, cur_decode_out) else "false"
+    print(f"The predict result is {is_correct}")
+    # 打印predict result
     lbl = ""
     for id in pred_result:
         label = id2lbl_map[int(id)]
         lbl += label
-    return lbl
+    # 打印accurate answer
+    pred_len = pred_result.shape[0]
+    cur_decode_out = cur_decode_out[:pred_len]
+    acc = ""
+    for id in cur_decode_out:
+        label = id2lbl_map[int(id)]
+        acc += label
+    print(f"pred_result:{lbl},accurate_answer:{acc}")
+    return lbl, acc
 
 
 if __name__ == "__main__":
     # TODO set parameters
     base_data_dir = './ICDAR_2015'  # 数据集根目录，请将数据下载到此位置
     device = torch.device('cpu')
-    nrof_epochs = 500
     batch_size = 16
     model_save_path = './log/ex1_ocr_model.pth'
 
@@ -99,11 +124,12 @@ if __name__ == "__main__":
     ocr_model.to(device)
     # --------------------------------------------------- #
     # load model parameters
-    ocr_model.load_state_dict(torch.load(model_save_path))
+    ocr_model.load_state_dict(torch.load(model_save_path, map_location=device))
 
     # ---------------------------------------------------------------- #
     # api for one img
+    ocr_model.eval()
+
     img_name = '201821285'
-    img_path = os.path.join(base_data_dir, img_name + '.png')
-    res = predict_student_num(img_path, id2lbl_map, ocr_model, sequence_len)
+    res = predict_student_num(img_name, lbl2id_map_path, ocr_model, sequence_len)
     print(res)
