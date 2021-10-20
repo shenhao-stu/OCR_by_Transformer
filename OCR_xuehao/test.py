@@ -9,7 +9,9 @@
 
 # here put the import lib
 
+import copy
 import os
+import time
 
 import torchvision.models as models
 import torchvision.transforms as transforms
@@ -27,9 +29,12 @@ class Recognition_Dataset(object):
         if phase == 'train':
             self.img_dir = os.path.join(dataset_root_dir, 'train')
             self.lbl_path = os.path.join(dataset_root_dir, 'train_gt.txt')
-        else:
+        elif phase == 'train':
             self.img_dir = os.path.join(dataset_root_dir, 'valid')
             self.lbl_path = os.path.join(dataset_root_dir, 'valid_gt.txt')
+        else:
+            self.img_dir = os.path.join(dataset_root_dir, 'test')
+            self.lbl_path = os.path.join(dataset_root_dir, 'test_gt.txt')
         self.lbl2id_map = lbl2id_map
         self.pad = pad  # padding标识符的id，默认0
         self.sequence_len = sequence_len  # 序列长度
@@ -309,10 +314,13 @@ if __name__ == "__main__":
     # 统计数据集中出现的所有的label中包含字符最多的有多少字符，数据集构造gt信息需要用到
     train_lbl_path = os.path.join(base_data_dir, 'train_gt.txt')
     valid_lbl_path = os.path.join(base_data_dir, 'valid_gt.txt')
+    test_lbl_path = os.path.join(base_data_dir, 'test_gt.txt')
+
     train_max_label_len = statistics_max_len_label(train_lbl_path)
     valid_max_label_len = statistics_max_len_label(valid_lbl_path)
+    test_max_label_len = statistics_max_len_label(test_lbl_path)
     # 数据集中字符数最多的一个case作为制作的gt的sequence_len
-    sequence_len = max(train_max_label_len, valid_max_label_len)
+    sequence_len = max(train_max_label_len, valid_max_label_len, test_max_label_len)
 
     # 构造 dataloader
     max_ratio = 8  # 图片预处理时 宽/高的最大值，不超过就保比例resize，超过会强行压缩
@@ -320,6 +328,8 @@ if __name__ == "__main__":
         base_data_dir, lbl2id_map, sequence_len, max_ratio, 'train', pad=0)
     valid_dataset = Recognition_Dataset(
         base_data_dir, lbl2id_map, sequence_len, max_ratio, 'valid', pad=0)
+    test_dataset = Recognition_Dataset(
+        base_data_dir, lbl2id_map, sequence_len, max_ratio, 'test', pad=0)
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                batch_size=batch_size,
                                                shuffle=True,
@@ -328,6 +338,10 @@ if __name__ == "__main__":
                                                batch_size=batch_size,
                                                shuffle=False,
                                                num_workers=4)
+    test_loader = torch.utils.data.DataLoader(test_dataset,
+                                              batch_size=batch_size,
+                                              shuffle=False,
+                                              num_workers=4)
 
     # build model
     # use transformer as ocr recognize model
@@ -444,3 +458,40 @@ if __name__ == "__main__":
                 print(id2label(id2lbl_map, pred_result))
     total_correct_rate = total_correct_num / total_img_num * 100
     print(f"total correct rate of validset: {total_correct_rate}%")
+
+    print("\n------------------------------------------------")
+    print("greedy decode testset")
+    total_img_num = 0
+    total_correct_num = 0
+    for batch_idx, batch in enumerate(test_loader):
+        img_input, encode_mask, decode_in, decode_out, decode_mask, ntokens = batch
+        img_input = img_input.to(device)
+        encode_mask = encode_mask.to(device)
+
+        bs = img_input.shape[0]
+        for i in range(bs):
+            cur_img_input = img_input[i].unsqueeze(0)
+            cur_encode_mask = encode_mask[i].unsqueeze(0)
+            cur_decode_out = decode_out[i]
+
+            pred_result = greedy_decode(
+                ocr_model, cur_img_input, cur_encode_mask, max_len=sequence_len, start_symbol=1, end_symbol=2)
+            pred_result = pred_result.cpu()
+
+            acc = ""
+            for id in cur_decode_out:
+                label = id2lbl_map[int(id)]
+                acc += label
+
+            is_correct = judge_is_correct(pred_result, cur_decode_out)
+            total_correct_num += is_correct
+            total_img_num += 1
+            if not is_correct:
+                # 预测错误的case进行打印
+                print("----")
+                # print(cur_decode_out)
+                print(id2label(id2lbl_map, cur_decode_out))
+                # print(pred_result)
+                print(id2label(id2lbl_map, pred_result))
+    total_correct_rate = total_correct_num / total_img_num * 100
+    print(f"total correct rate of testset: {total_correct_rate}%")
