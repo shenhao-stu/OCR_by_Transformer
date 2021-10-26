@@ -110,7 +110,7 @@ class Recognition_Dataset(object):
         for i in range(len(lbl_str), self.sequence_len):
             gt.append(0)
         # 截断为预设的最大序列长度
-        gt = gt[:self.sequence_len]
+        gt = gt[:self.sequence_len] # 理论上需要sequence+2
 
         # decoder的输入
         decode_in = gt[:-1]
